@@ -293,14 +293,17 @@ module Ultrasphinx
       def reify_results(ids)
         results = []
         
-        # ids_hash[class_name] = [id, id, id] for each class
+        # ids_hash[class_name] = {id => ids.index, id, id} for each class
         ids_hash = {}
-        ids.each do |class_name, id|
-          (ids_hash[class_name] ||= []) << id
+        ids.each_with_index do |item, i|
+          class_name = item[0]
+          id = item[1].to_i
+          (ids_hash[class_name] ||= {})[id] = i
         end
         
         ids_hash.keys.each do |class_name|
           class_ids = ids_hash[class_name]
+          class_ids = class_ids.keys
           klass = class_name.constantize
           
           finder = (
@@ -327,7 +330,7 @@ module Ultrasphinx
           end
           
           records.each do |record|
-            idx=ids.index([class_name, record.id])
+            idx=ids_hash[class_name][record.id]
             results[idx] = record
           end
         end
