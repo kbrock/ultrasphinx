@@ -293,12 +293,14 @@ module Ultrasphinx
       def reify_results(ids)
         results = []
         
+        # ids_hash[class_name] = [id, id, id] for each class
         ids_hash = {}
         ids.each do |class_name, id|
           (ids_hash[class_name] ||= []) << id
         end
         
-        ids.map {|ary| ary.first}.uniq.each do |class_name|
+        ids_hash.keys.each do |class_name|
+          class_ids = ids_hash[class_name]
           klass = class_name.constantize
           
           finder = (
@@ -310,22 +312,23 @@ module Ultrasphinx
               "find_all_by_#{klass.primary_key}"
             )
 
-          records = klass.send(finder, ids_hash[class_name])
+          records = klass.send(finder, class_ids)
           
           unless Ultrasphinx::Search.client_options['ignore_missing_records']
-            if records.size != ids_hash[class_name].size
-              missed_ids = ids_hash[class_name] - records.map(&:id)
+            if records.size != class_ids.size
+              missed_ids = class_ids - records.map(&:id)
               msg = if missed_ids.size == 1
                 "Couldn't find #{class_name} with ID=#{missed_ids.first}"
               else
-                "Couldn't find #{class_name.pluralize} with IDs: #{missed_ids.join(',')} (found #{records.size} results, but was looking for #{ids_hash[class_name].size})"
+                "Couldn't find #{class_name.pluralize} with IDs: #{missed_ids.join(',')} (found #{records.size} results, but was looking for #{class_ids.size})"
               end
               raise ActiveRecord::RecordNotFound, msg
             end
           end
           
           records.each do |record|
-            results[ids.index([class_name, record.id])] = record
+            idx=ids.index([class_name, record.id])
+            results[idx] = record
           end
         end
         
