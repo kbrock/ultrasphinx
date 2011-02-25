@@ -356,8 +356,12 @@ Note that your database is never changed by anything Ultrasphinx does.
           @facets[facet] = get_facets(@request, parsed_query, facet)
         end        
         
-        @results = convert_sphinx_ids(response[:matches])
-        @results = reify_results(@results) if reify
+        if reify == :doc
+          @results = append_sphinx_ids(response[:matches])
+        else
+          @results = convert_sphinx_ids(response[:matches])
+          @results = reify_results(@results) if reify
+        end
         
         say "warning; #{response[:warning]}" if response[:warning]
         raise UsageError, response[:error] if response[:error]
